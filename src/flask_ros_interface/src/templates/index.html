@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Control Interface</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Robot Control</h1>
+    <h2>Live Camera Feed</h2>
+    <img id="videoStream" src="{{ url_for('video_feed') }}" width="640" height="480">
+    
+
+    <label for="textInput">Text Input:</label>
+    <input type="text" id="textInput" placeholder="Type something">
+    <br>
+
+    <button id="recordButton">Start Recording</button>
+
+    <script>
+        let recording = false;
+        const keyMap = {
+            "ArrowUp": "UP",
+            "ArrowDown": "DOWN",
+            "ArrowLeft": "LEFT",
+            "ArrowRight": "RIGHT"
+        };
+
+        // Send text input to Flask server
+        document.getElementById("textInput").addEventListener("input", function(event) {
+            let text = event.target.value;
+            fetch('/send_recording', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: text, record: recording })
+            }).then(response => response.json())
+              .then(data => console.log(data));
+        });
+
+        // Toggle recording
+        document.getElementById("recordButton").addEventListener("click", function() {
+            recording = !recording;
+            this.innerText = recording ? "Stop Recording" : "Start Recording";
+            fetch('/send_recording', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ record: recording, message: document.getElementById("textInput").value })
+            }).then(response => response.json())
+              .then(data => console.log(data));
+        });
+
+        // Listen for keyboard input (arrow keys)
+        document.addEventListener("keydown", function(event) {
+            if (keyMap[event.key]) {
+                fetch('/send_keyboard', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ key: keyMap[event.key] })
+                }).then(response => response.json())
+                  .then(data => console.log(data));
+            }
+        });
+
+        // Gamepad Input Listener (for gamepads connected to the browser)
+        function updateGamepad() {
+            let gamepads = navigator.getGamepads();
+            if (gamepads[0]) {
+                let buttons = gamepads[0].buttons.map(b => b.pressed ? 1 : 0);
+                let joystick = [
+                    gamepads[0].axes[0], // X-axis
+                    gamepads[0].axes[1]  // Y-axis
+                ];
+
+                fetch('/send_gamepad', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ buttons: buttons, joystick: joystick })
+                }).then(response => response.json())
+                  .then(data => console.log(data));
+            }
+            requestAnimationFrame(updateGamepad);
+        }
+
+        // Start listening to gamepad inputs
+        updateGamepad();
+    </script>
+</body>
+</html>

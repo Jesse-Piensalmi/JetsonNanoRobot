@@ -1,0 +1,10 @@
+<launch>
+    <!-- Include the RealSense camera launch file -->
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch" />
+
+    <!-- Include your custom flask app launch file -->
+    <include file="$(find flask_ros_interface)/launch/start_server.launch" />
+    
+    <!-- Include the motor controller launch file -->
+    <include file="$(find motor_control)/launch/motor_controller.launch" />
+</launch>

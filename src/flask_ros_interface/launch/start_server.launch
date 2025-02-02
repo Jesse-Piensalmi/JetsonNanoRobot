@@ -1,0 +1,13 @@
+<launch>
+  <!-- Start the rosbridge server -->
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
+
+  <!-- Start the Flask application -->
+  <node name="flask_app" pkg="flask_ros_interface" type="app.py" output="screen" launch-prefix="python3">
+       <rosparam>
+           {
+               "working_directory": "$(find flask_ros_interface)/src"
+           }
+       </rosparam>
+   </node>
+</launch>
