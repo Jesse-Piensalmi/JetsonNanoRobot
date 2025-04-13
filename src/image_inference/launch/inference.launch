@@ -1,0 +1,3 @@
+<launch>
+    <node name="image_inference_node" pkg="image_inference" type="inference_node.py" output="screen"/>
+</launch>

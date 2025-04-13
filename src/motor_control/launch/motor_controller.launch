@@ -1,4 +1,4 @@
 <launch>
     <!-- Start the motor controller node -->
-    <node name="motor_controller" pkg="motor_control" type="motor_controller.py" output="screen" />
+    <node name="motor_controller" pkg="motor_control" type="motor_controller.py" output="screen"/>
 </launch>

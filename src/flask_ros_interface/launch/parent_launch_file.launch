@@ -7,4 +7,13 @@
     
     <!-- Include the motor controller launch file -->
     <include file="$(find motor_control)/launch/motor_controller.launch" />
+    
+    <!-- Include the inference model launch file-->
+    <include file="$(find image_inference)/launch/inference.launch" />
+
+    <!-- Include datalogger launch file-->
+    <include file="$(find datalogger)/launch/data_logger.launch" />
+
+    
+
 </launch>

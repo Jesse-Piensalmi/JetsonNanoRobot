@@ -4,23 +4,34 @@ import rospy
 import Jetson.GPIO as GPIO
 from std_msgs.msg import String
 from sensor_msgs.msg import Joy
+import signal
+import sys
 
+# Check priviliges
+import os
+import grp
+
+group_names = [grp.getgrgid(g).gr_name for g in os.getgroups()]
+print("Effective user ID:", os.geteuid())
+print("Groups:", group_names)
+print("Can write to /sys/class/gpio/export:", os.access("/sys/class/export", os.W_OK))
 # GPIO Setup
-PWM_LEFT = 32
-PWM_RIGHT = 33
-LEN = 37
-REN = 38
+PWM_LEFT = 33
+PWM_RIGHT = 32
 
 GPIO.setmode(GPIO.BOARD)
-GPIO.setup(PWM_LEFT, GPIO.OUT)
-GPIO.setup(PWM_RIGHT, GPIO.OUT)
-GPIO.setup(REN, GPIO.OUT)
-GPIO.setup(LEN, GPIO.OUT)
+#GPIO.setup(35,GPIO.OUT) #PWMR
+#GPIO.setup(36,GPIO.OUT) #PWML
+GPIO.setup(37,GPIO.OUT) #PWMR
+GPIO.setup(38,GPIO.OUT) #PWML
+GPIO.setup(PWM_LEFT,GPIO.OUT, initial=GPIO.LOW) #L_EN
+GPIO.setup(PWM_RIGHT,GPIO.OUT, initial=GPIO.LOW) #R_EN
+GPIO.setup(36,GPIO.OUT)
 # Set up PWM with frequency (e.g., 1000 Hz)
-pwm_left = GPIO.PWM(PWM_LEFT, 255)
-pwm_right = GPIO.PWM(PWM_RIGHT, 255)
-r_en = GPIO.output(37, GPIO.LOW)
-l_en = GPIO.output(38, GPIO.LOW)
+pwm_left = GPIO.PWM(PWM_LEFT, 1000)
+pwm_right = GPIO.PWM(PWM_RIGHT, 1000)
+r_en = 37
+l_en = 38
 
 pwm_left.start(0)  # Start with 0% duty cycle (stopped)
 pwm_right.start(0)
@@ -33,20 +44,32 @@ def set_motor_speed(left, right):
     """Updates motor speeds using PWM"""
     global left_speed, right_speed
     
-    left_speed = max(0, min(100, left))   # Limit duty cycle to 0-100%
-    right_speed = max(0, min(100, right))
+    
     # If we have reverse
     if left<0:
-        l_en=GPIO.output(38, GPIO.HIGH)
+        GPIO.output(38, GPIO.HIGH)
+        GPIO.output(37, GPIO.LOW)
+        rospy.loginfo(f"Motor control: Backing up")
+        
+        pwm_left.ChangeDutyCycle(abs(left))
     else:
-        l_en=GPIO.output(38, GPIO.LOW)
-
+        GPIO.output(38, GPIO.LOW)
+        GPIO.output(37, GPIO.HIGH)
+        rospy.loginfo(f"Motor control: Backing up")
+        
+        pwm_left.ChangeDutyCycle(abs(left))
     if right<0:
-        r_en=GPIO.output(37, GPIO.HIGH)
+        #GPIO.output(35, GPIO.HIGH)
+        #GPIO.output(36, GPIO.LOW)
+        rospy.loginfo(f"Motor control: Backing up")
+        pwm_right.ChangeDutyCycle(abs(right))
+        
     else:
-        r_en=GPIO.output(37, GPIO.LOW)
-    pwm_left.ChangeDutyCycle(abs(left_speed))
-    pwm_right.ChangeDutyCycle(abs(right_speed))
+        #GPIO.output(35, GPIO.LOW)
+        #GPIO.output(36, GPIO.HIGH)
+        rospy.loginfo(f"Motor control: CHAAARGE duty cycle {left_speed}")
+        pwm_right.ChangeDutyCycle(abs(right))
+        
 
 def keyboard_callback(msg):
     """Handles keyboard input for movement"""
@@ -92,5 +115,10 @@ if __name__ == "__main__":
     rospy.Subscriber("/gamepad_topic", Joy, gamepad_callback)
 
     rospy.on_shutdown(shutdown)
+
+    # release Pins in case the robot shits the bed
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
+
     rospy.loginfo("Motor Controller Node Running")
     rospy.spin()
