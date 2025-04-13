@@ -1,0 +1,4 @@
+<launch>
+    <!-- Start the datalogger node -->
+    <node name="data_logger" pkg="datalogger" type="data_logger.py" output="screen"/>
+</launch>
